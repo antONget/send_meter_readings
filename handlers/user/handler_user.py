@@ -8,12 +8,11 @@ import logging
 from config_data.config import Config, load_config
 from keyboard import personal_keyboards, admin_keyboards
 from database import requests
+from datetime import datetime
 
 
 config: Config = load_config()
 router = Router()
-
-button_list = config.tg_bot.button_list
 
 
 class FSMFillForm(StatesGroup):
@@ -34,6 +33,25 @@ class FSMFillForm(StatesGroup):
 
 def extract_arg(arg):
     return arg.split()[1:]
+
+
+async def send_notification(bot: Bot):
+    logging.info('send_notification')
+    day_today = str(datetime.now().today().day)
+    ids_list = requests.select_personal_id_by_day(day_today)
+    for id_ in ids_list:
+        try:
+            await bot.send_message(chat_id=int(id_),
+                                   text=f'Сегодня {day_today} число, необходимо отправить отчет, если у вас'
+                                        f' несколько обьектов , введите /start чтобы просмотреть для какого'
+                                        f' обьекта нужно отправить отчет')
+
+        except Exception as e:
+            admin_ids = str(config.tg_bot.admin_ids).split(',')
+            for admin_id in admin_ids[1:]:
+                await bot.send_message(chat_id=int(admin_id),
+                                       text=f'Сотрудник {id_} не получил оповещение, возможно он заблокировал бота,'
+                                            f' либо не запускал его')
 
 
 @router.message(Command('send_file'))
@@ -69,18 +87,12 @@ async def start(message: types.Message):
                                          f'Вам нужно присылать отчет каждое {time} число',
                                          reply_markup=personal_keyboards.main_button_personal())
                 else:
-                    text = 'Вы являtтесь ответственным за помещения:\n'
-                    objects = []
-                    report_days = []
-                    for elem in data:
-                        objects.append(elem[0])
-                        report_days.append(elem[1])
-                    for object_ in objects:
-                        text += f'{objects.index(object_)+1}) {object_}\n'
+                    text = 'Вы являетесь ответственным за помещения:\n'
 
-                    text += 'Вам нужно присылать отчеты\n'
-                    for day in report_days:
-                        text += f'{report_days.index(day)+1}) {day} число\n'
+                    for elem in data:
+                        text += f'{data.index(elem)}) {elem[0]} - день отчета: {elem[1]} число\n'
+                    await message.answer(text=text,
+                                         reply_markup=personal_keyboards.main_button_personal())
 
                     await message.answer(text=text,
                                          reply_markup=personal_keyboards.main_button_personal())
@@ -98,16 +110,9 @@ async def start(message: types.Message):
                                          reply_markup=personal_keyboards.main_button_personal())
                 else:
                     text = 'Вы являетесь ответственным за помещения:\n'
-                    objects = []
-                    report_days = []
+
                     for elem in data:
-                        objects.append(elem[0])
-                        report_days.append(elem[1])
-                    for object_ in objects:
-                        text += f'{objects.index(object_)+1}) {object_}\n'
-                    text += '\nВам нужно присылать отчеты\n'
-                    for day in report_days:
-                        text += f'{report_days.index(day)+1}) {day} число\n'
+                        text += f'{data.index(elem)}) {elem[0]} - день отчета: {elem[1]} число\n'
                     await message.answer(text, reply_markup=personal_keyboards.main_button_personal())
             else:
                 await message.answer('Вы не являетесь персоналом')

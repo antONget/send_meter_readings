@@ -13,7 +13,10 @@ from config_data.config import Config, load_config
 from database.requests import create_database
 from notify_admins import on_startup_notify
 
+from apscheduler.schedulers.asyncio import AsyncIOScheduler
+
 from handlers.user import handler_user
+from handlers.user.handler_user import send_notification
 from handlers.admin import handler_admin
 from handlers import other_handlers
 
@@ -41,6 +44,9 @@ async def main():
     # Инициализируем бот и диспетчер
     bot = Bot(token=config.tg_bot.token, default=DefaultBotProperties(parse_mode=ParseMode.HTML))
     dp = Dispatcher()
+    sheduler = AsyncIOScheduler(timezone='Europe/Moscow')
+    sheduler.add_job(func=send_notification, trigger='cron', hour=10, args=(bot,))
+    sheduler.start()
     await on_startup_notify(bot=bot)
     # Регистрируем router в диспетчере
     dp.include_router(handler_admin.router)

@@ -58,7 +58,6 @@ def check_personal(id_):
     rezult = cur.fetchone()
     cur.close()
     conn.close()
-    print(rezult)
     if str(rezult[0]) == 'None':
         return True
     else:
@@ -138,3 +137,13 @@ def add_another_oject_to_personal(ident,personal_id,day):
     conn.commit()
     cur.close()
     conn.close()
+
+
+def select_personal_id_by_day(day: str):
+    conn = sqlite3.connect('database/DATABASE.sql')
+    cur = conn.cursor()
+    cur.execute(f'SELECT personal_id FROM database WHERE time = "{day}"')
+    data = cur.fetchall()
+    cur.close()
+    conn.close()
+    return data[0]

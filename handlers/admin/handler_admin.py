@@ -231,18 +231,30 @@ async def get_ident_for_add_new(message: types.Message, state: FSMContext):
 async def get_ident_for_add_new(message: types.Message, state: FSMContext, bot: Bot):
     logging.info('get_ident_for_add_new')
     if str(message.text) not in button_list:
-        report_day = message.text
-        ident = await state.get_data()
-        ident = ident['ident']
-        personal_id = await state.get_data()
-        personal_id = personal_id['personal_id']
-        requests.add_another_oject_to_personal(ident=ident, personal_id=personal_id, day=report_day)
+        try:
+            int_message = int(message.text)
+            if 1 <= int_message <= 31:
+                report_day = message.text
+                ident = await state.get_data()
+                ident = ident['ident']
+                personal_id = await state.get_data()
+                personal_id = personal_id['personal_id']
+                requests.add_another_oject_to_personal(ident=ident, personal_id=personal_id, day=report_day)
 
-        await message.answer('Объект добавлен сотруднику')
-        await bot.send_message(chat_id=personal_id,
-                               text=f'Вам добавлен объект: "{ident}"\n'
-                                    f'Вам нужно отправлять отчет каждое {report_day} число')
-        await state.clear()
+                await message.answer('Объект добавлен сотруднику')
+                await bot.send_message(chat_id=personal_id,
+                                       text=f'Вам добавлен объект: "{ident}"\n'
+                                            f'Вам нужно отправлять отчет каждое {report_day} число')
+                await state.clear()
+
+            else:
+                await message.answer('Введено некоректное число, введите еще раз')
+                await state.set_state(FSMFillForm.get_report_day_for_new)
+
+        except Exception as e:
+            await message.answer('Введено некоректное число, введите еще раз')
+            await state.set_state(FSMFillForm.get_report_day_for_new)
+
     else:
         await main_admin(message=message, state=state)
         await state.clear()
@@ -305,17 +317,32 @@ async def get_ident_to_change_day(callback: types.CallbackQuery, state: FSMConte
 async def get_new_report_day(message: types.Message, state: FSMContext, bot: Bot):
     logging.info('get_new_report_day')
     if str(message.text) not in button_list:
-        new_day = message.text
-        ident_cort = await state.get_data()
-        ident = ident_cort['ident']
-        requests.update_day(ident=ident, day=new_day)
-        personal_id = requests.select_personal_id_by_ident(ident)[0][0]
-        await message.answer(f'День сдачи отчета для помещения "{ident}" изменен')
+
         try:
-            await bot.send_message(chat_id=personal_id,
-                                   text=f'День сдачи отчета для помещения "{ident}" изменен на {new_day} число')
-        except:
-            await message.answer(text=f'Бот не смог оповестить пользователя')
+            int_message = int(message.text)
+
+            if 1 <= int_message <= 31:
+
+                new_day = message.text
+                ident_cort = await state.get_data()
+                ident = ident_cort['ident']
+                requests.update_day(ident=ident, day=new_day)
+                personal_id = requests.select_personal_id_by_ident(ident)[0][0]
+                await message.answer(f'День сдачи отчета для помещения "{ident}" изменен')
+                try:
+                    await bot.send_message(chat_id=personal_id,
+                                           text=f'День сдачи отчета для помещения "{ident}" изменен на {new_day} число')
+
+                except Exception as e:
+                    await message.answer(text=f'Бот не смог оповестить пользователя')
+
+            else:
+                await message.answer('Введено некоректное число, введите его еще раз')
+                await state.set_state(FSMFillForm.get_new_report_day)
+
+        except Exception as e:
+            await message.answer('Введено некоректное число, введите его еще раз')
+            await state.set_state(FSMFillForm.get_new_report_day)
 
     else:
         await main_admin(message, state)
@@ -372,8 +399,12 @@ async def get_text_for_mailing(message: types.Message, state: FSMContext, bot: B
         text = 'Рассылка от администратора\n\n' + text
         ids_list = requests.get_all_personal_ids()
         for id_ in ids_list:
-            await bot.send_message(chat_id=id_[0],
-                                   text=text)
+            try:
+                await bot.send_message(chat_id=id_[0],text=text)
+
+            except Exception as e:
+                await message.answer(f'Пользователь {id_} не оповещен, возможно он заблокировал бота, либо не запускал его')
+
         await message.answer('Рассылка отправлена всем сотрудникам')
         await state.clear()
 
@@ -410,7 +441,11 @@ async def send_message_ro_one_person(message: types.Message, state: FSMContext, 
             await message.answer('Сообщение отправлено!')
 
         except Exception as e:
-            await message.answer('Введен неверный id нажмите на кнопку "Создать рассылку" и попробуйте снова')
+            await message.answer('Произошла ошибка при отправке сообщения,возможные причины:\n'
+                                 '1) Пользователь заблокировал бота\n'
+                                 '2) Пользователь не запускал бота\n'
+                                 '3) Введен неверный id\n'
+                                 'Нажмите на кнопку "Создать рассылку" и попробуйте снова')
             await state.clear()
 
     else:
