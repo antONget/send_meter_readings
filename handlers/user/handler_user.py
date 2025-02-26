@@ -8,7 +8,6 @@ import logging
 from config_data.config import Config, load_config
 from keyboard import personal_keyboards, admin_keyboards
 from database import requests
-from datetime import datetime
 
 
 config: Config = load_config()
@@ -35,23 +34,23 @@ def extract_arg(arg):
     return arg.split()[1:]
 
 
-async def send_notification(bot: Bot):
-    logging.info('send_notification')
-    day_today = str(datetime.now().today().day)
-    ids_list = requests.select_personal_id_by_day(day_today)
+async def send_notification(day: str, bot: Bot):
+    ids_list = requests.select_personal_id_by_day(day)
     for id_ in ids_list:
         try:
             await bot.send_message(chat_id=int(id_),
-                                   text=f'Сегодня {day_today} число, необходимо отправить отчет, если у вас'
-                                        f' несколько обьектов , введите /start чтобы просмотреть для какого'
-                                        f' обьекта нужно отправить отчет')
+                                   text=f'Сегодня {day} число,'
+                                        f' необходимо отправить отчет, если у вас несколько обьектов,'
+                                        f' введите /start чтобы просмотреть для какого обьекта нужно'
+                                        f' отправить отчет')
 
         except Exception as e:
+            print(e)
             admin_ids = str(config.tg_bot.admin_ids).split(',')
             for admin_id in admin_ids[1:]:
                 await bot.send_message(chat_id=int(admin_id),
-                                       text=f'Сотрудник {id_} не получил оповещение, возможно он заблокировал бота,'
-                                            f' либо не запускал его')
+                                       text=f'Сотрудник {id_} не получил оповещение,'
+                                       f' возможно он заблокировал бота, либо не запускал его')
 
 
 @router.message(Command('send_file'))
@@ -63,6 +62,7 @@ async def send_file(message: types.Message):
 @router.message(Command('start'))
 async def start(message: types.Message):
     logging.info('start')
+    print(123123)
     command = extract_arg(message.text)
 
     user_id = str(message.from_user.id)
@@ -91,8 +91,7 @@ async def start(message: types.Message):
 
                     for elem in data:
                         text += f'{data.index(elem)}) {elem[0]} - день отчета: {elem[1]} число\n'
-                    await message.answer(text=text,
-                                         reply_markup=personal_keyboards.main_button_personal())
+                    await message.answer(text, reply_markup=personal_keyboards.main_button_personal())
 
                     await message.answer(text=text,
                                          reply_markup=personal_keyboards.main_button_personal())
