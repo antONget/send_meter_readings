@@ -25,10 +25,10 @@ async def all_message(message: Message) -> None:
         logging.info(message.sticker.file_id)
 
     if message.text == '/get_logfile':
-        file_path = "../py_log.log"
+        file_path = "py_log.log"
         await message.answer_document(FSInputFile(file_path))
 
     if message.text == '/get_dbfile':
-        file_path = "../database/DATABASE.sql"
+        file_path = "database/DATABASE.sql"
         await message.answer_document(FSInputFile(file_path))
 

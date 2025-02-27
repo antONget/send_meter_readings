@@ -6,16 +6,21 @@ from datetime import datetime
 def create_database() -> None:
     conn = sqlite3.connect('database/DATABASE.sql')
     cur = conn.cursor()
-    cur.execute('CREATE TABLE IF NOT EXISTS database (id INTEGER PRIMARY KEY AUTOINCREMENT,ident text, time text, personal_id int)')
+    cur.execute('CREATE TABLE IF NOT EXISTS database ('
+                'id INTEGER PRIMARY KEY AUTOINCREMENT,'
+                'ident text,'
+                'time_water text,'
+                'time_electro text,'
+                'personal_id int)')
     conn.commit()
     cur.close()
     conn.close()
 
 
-def insert_data_and_ident(ident, time):
+def insert_data_and_ident(ident, time_water,time_electro):
     conn = sqlite3.connect('database/DATABASE.sql')
     cur = conn.cursor()
-    cur.execute('INSERT INTO database (ident,time) VALUES (?,?)', (ident, time))
+    cur.execute('INSERT INTO database (ident,time_water,time_electro) VALUES (?,?,?)', (ident, time_water,time_electro))
     conn.commit()
     cur.close()
     conn.close()
@@ -58,6 +63,7 @@ def check_personal(id_):
     rezult = cur.fetchone()
     cur.close()
     conn.close()
+    print(rezult)
     if str(rezult[0]) == 'None':
         return True
     else:
@@ -67,7 +73,7 @@ def check_personal(id_):
 def check_personal_without_comand(user_id):
     conn = sqlite3.connect('database/DATABASE.sql')
     cur = conn.cursor()
-    cur.execute(f'SELECT ident,time FROM database WHERE personal_id = "{user_id}"')
+    cur.execute(f'SELECT ident,time_water,time_electro FROM database WHERE personal_id = "{user_id}"')
     data = cur.fetchall()
     cur.close()
     conn.close()
@@ -111,10 +117,18 @@ def select_personal_id_by_ident(ident):
     return id
 
 
-def update_day(ident,day):
+def update_day_water(ident,day_water):
     conn = sqlite3.connect('database/DATABASE.sql')
     cur = conn.cursor()
-    cur.execute(f'UPDATE database SET time = "{day}" WHERE ident = "{ident}"')
+    cur.execute(f'UPDATE database SET time_water = "{day_water}" WHERE ident = "{ident}"')
+    conn.commit()
+    cur.close()
+    conn.close()
+
+def update_day_electro(ident,day_electro):
+    conn = sqlite3.connect('database/DATABASE.sql')
+    cur = conn.cursor()
+    cur.execute(f'UPDATE database SET time_electro = "{day_electro}" WHERE ident = "{ident}"')
     conn.commit()
     cur.close()
     conn.close()
@@ -130,20 +144,29 @@ def check_day(user_id):
     return data[0]
 
 
-def add_another_oject_to_personal(ident,personal_id,day):
+def add_another_oject_to_personal(ident,personal_id,day_water,day_electro):
     conn = sqlite3.connect('database/DATABASE.sql')
     cur = conn.cursor()
-    cur.execute(f'INSERT INTO database (ident,time,personal_id) VALUES ("{ident}","{day}","{personal_id}")')
+    cur.execute(f'INSERT INTO database (ident,time_water,time_electro,personal_id) VALUES ("{ident}","{day_water}","{day_electro}","{personal_id}")')
     conn.commit()
     cur.close()
     conn.close()
 
 
-def select_personal_id_by_day(day: str):
+def select_personal_id_by_day_water(day: str):
     conn = sqlite3.connect('database/DATABASE.sql')
     cur = conn.cursor()
-    cur.execute(f'SELECT personal_id FROM database WHERE time = "{day}"')
+    cur.execute(f'SELECT personal_id FROM database WHERE time_water = "{day}"')
     data = cur.fetchall()
     cur.close()
     conn.close()
-    return data[0]
+    return data
+
+def select_personal_id_by_day_electro(day: str):
+    conn = sqlite3.connect('database/DATABASE.sql')
+    cur = conn.cursor()
+    cur.execute(f'SELECT personal_id FROM database WHERE time_electro = "{day}"')
+    data = cur.fetchall()
+    cur.close()
+    conn.close()
+    return data

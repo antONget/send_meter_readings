@@ -2,7 +2,7 @@ import asyncio
 import logging
 
 from aiogram import Bot, Dispatcher
-from aiogram.types import FSInputFile, User
+from aiogram.types import FSInputFile
 from aiogram.client.default import DefaultBotProperties
 from aiogram.enums import ParseMode
 from aiogram.types import ErrorEvent
@@ -45,21 +45,17 @@ async def main():
     bot = Bot(token=config.tg_bot.token, default=DefaultBotProperties(parse_mode=ParseMode.HTML))
     dp = Dispatcher()
     sheduler = AsyncIOScheduler(timezone='Europe/Moscow')
-    sheduler.add_job(func=send_notification, trigger='cron', hour=10, args=(bot,))
+    sheduler.add_job(func=send_notification, trigger='cron', hour=11, minute=43, args=(bot,))
     sheduler.start()
     await on_startup_notify(bot=bot)
     # Регистрируем router в диспетчере
-    dp.include_router(handler_admin.router)
     dp.include_router(handler_user.router)
+    dp.include_router(handler_admin.router)
     dp.include_router(other_handlers.router)
-
 
     @dp.error()
     async def error_handler(event: ErrorEvent, data: Dict[str, Any]):
         logger.critical("Критическая ошибка: %s", event.exception, exc_info=True)
-        user: User = data.get('event_from_user')
-        # await bot.send_message(chat_id=user.id,
-        #                        text='Упс.. Что-то пошло не так( Перезапустите бота /start')
         await bot.send_message(chat_id=config.tg_bot.support_id,
                                text=f'{event.exception}')
         formatted_lines = traceback.format_exc()

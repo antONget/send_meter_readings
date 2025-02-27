@@ -73,3 +73,11 @@ def ident_list_mid_and_last_page(ident_list: list, page: int):
         btn_back = types.InlineKeyboardButton(text='<<<', callback_data=f'back_ident_{page - 1}')
         markup.inline_keyboard.append([btn_back])
     return markup
+
+
+def report_buttons_admin():
+    markup = types.InlineKeyboardMarkup(inline_keyboard=[])
+    btn1 = types.InlineKeyboardButton(text='Электричество',callback_data='ЭЛЕКТРИЧЕСТВО')
+    btn2 = types.InlineKeyboardButton(text='Вода',callback_data='ВОДА')
+    markup.inline_keyboard.append([btn1,btn2])
+    return markup

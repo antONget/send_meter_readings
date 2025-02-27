@@ -6,7 +6,7 @@ from utils.list_keyboard_select_item import utils_handler_pagination_and_select_
 import logging
 
 from config_data.config import Config, load_config
-from keyboard import personal_keyboards, admin_keyboards
+from keyboard import admin_keyboards
 from database import requests
 
 
@@ -18,17 +18,20 @@ button_list = config.tg_bot.button_list
 
 class FSMFillForm(StatesGroup):
     get_ident = State()
-    get_date_time = State()
+    get_date_time_water = State()
+    get_date_time_electro = State()
     get_ident_for_mailing = State()
     get_text_to_mailing = State()
     fill_mailing = State()
     get_photo_to_report = State()
     get_photo_to_report_choice = State()
     get_failure_report = State()
-    get_new_report_day = State()
+    get_new_report_day_water = State()
+    get_new_report_day_electro = State()
 
     get_personal_id = State()
-    get_report_day_for_new = State()
+    get_report_day_water_for_new = State()
+    get_report_day_electro_for_new = State()
     get_ident_for_add_new = State()
 
 
@@ -39,7 +42,6 @@ def extract_arg(arg):
 @router.message(Command('start'))
 async def start(message: types.Message):
     logging.info('start')
-    command = extract_arg(message.text)
     user_id = str(message.from_user.id)
     admin_id_list = str(config.tg_bot.admin_ids).split(',')
     if user_id in admin_id_list:
@@ -47,68 +49,6 @@ async def start(message: types.Message):
         markup = admin_keyboards.main_admin_buttons()
         await message.answer(text='Вы являетесь администратором, выберите действие',
                              reply_markup=markup)
-
-    if user_id not in admin_id_list:
-        if command:
-            command = int(command[0])
-
-            if requests.check_personal(command):
-                requests.insert_personl_id_and(command, user_id)
-                data = requests.check_personal_without_comand(user_id)
-                if len(data) == 1:
-                    name = data[0][0]
-                    time = data[0][1]
-                    await message.answer(text=f'Добрый день,вы являетесь ответственным за помещение "{name}"\n\n'
-                                              f'Вам нужно присылать отчет каждое {time} число',
-                                         reply_markup=personal_keyboards.main_button_personal())
-
-                else:
-                    text = 'Вы являетесь ответственным за помещения:\n'
-                    objects = []
-                    report_days = []
-
-                    for elem in data:
-                        objects.append(elem[0])
-                        report_days.append(elem[1])
-
-                    for object_ in objects:
-                        text += f'{objects.index(object_)+1}) {object_}\n'
-
-                    text += 'Вам нужно присылать отчеты\n'
-                    for day in report_days:
-                        text += f'{report_days.index(day)+1}) {day} число\n'
-
-                    await message.answer(text=text,
-                                         reply_markup=personal_keyboards.main_button_personal())
-            else:
-                await message.answer('На эту ссылку уже зарегистрирован человек')
-        else:
-            if requests.check_personal_without_comand(user_id):
-                data = requests.check_personal_without_comand(user_id)
-                if len(data) == 1:
-                    name = data[0][0]
-                    time = data[0][1]
-
-                    await message.answer(f'Добрый день,вы являетесь ответственным за помещение "{name}"\n\n'
-                                         f'Вам нужно присылать отчет каждое {time} число',
-                                         reply_markup=personal_keyboards.main_button_personal())
-                else:
-                    text = 'Вы являетесь ответственным за помещения:\n'
-                    objects = []
-                    report_days = []
-                    for elem in data:
-                        objects.append(elem[0])
-                        report_days.append(elem[1])
-                    for object_ in objects:
-                        text += f'{objects.index(object_)+1}) {object_}\n'
-                    text += '\nВам нужно присылать отчеты\n'
-                    for day in report_days:
-                        text += f'{report_days.index(day)+1}) {day} число\n'
-
-                    await message.answer(text=text,
-                                         reply_markup=personal_keyboards.main_button_personal())
-            else:
-                await message.answer(text='Вы не являетесь персоналом')
 
 
 @router.callback_query(or_f(F.data.startswith('Принять'),
@@ -181,10 +121,6 @@ async def main_admin(message: types.Message, state: FSMContext):
                                                        callback_prefix_next='next_ident',
                                                        callback=None,
                                                        message=message)
-        # markup = admin_keyboards.ident_list_first_page(ident_list)
-        # await message.answer(text=f'Выберите объект для изменения времени\n'
-        #                           f'Страница 1/{int(len(ident_list)/2)+1}',
-        #                      reply_markup=markup)
 
     if message.text == 'Добавить объект сотруднику 🚶':
         await message.answer(text='Пришлите telegram id сотрудника для отправки ему сообщения\n'
@@ -195,8 +131,8 @@ async def main_admin(message: types.Message, state: FSMContext):
 
 
 @router.message(StateFilter(FSMFillForm.get_personal_id))
-async def get_peronal_id_for_new(message: types.Message, state: FSMContext):
-    logging.info('get_peronal_id_for_new')
+async def get_personal_id_for_new(message: types.Message, state: FSMContext):
+    logging.info('get_personal_id_for_new')
     if str(message.text) not in button_list:
         personal_id = message.text
         personal_ids_list = requests.get_all_personal_ids()
@@ -220,40 +156,68 @@ async def get_ident_for_add_new(message: types.Message, state: FSMContext):
     logging.info('get_ident_for_add_new')
     if str(message.text) not in button_list:
         await state.update_data(ident=message.text)
-        await message.answer(text='Введите день, в который вам будет приходить отчет')
-        await state.set_state(FSMFillForm.get_report_day_for_new)
+        await message.answer(text='Введите день, в который вам будет приходить отчет за воду')
+        await state.set_state(FSMFillForm.get_report_day_water_for_new)
     else:
         await main_admin(message=message, state=state)
         await state.clear()
 
 
-@router.message(StateFilter(FSMFillForm.get_report_day_for_new))
+@router.message(StateFilter(FSMFillForm.get_report_day_water_for_new))
+async def get_report_day_water_for_new(message: types.Message, state: FSMContext):
+    logging.info('get_report_day_water_for_new')
+    if str(message.text) not in button_list:
+
+        try:
+            int_message = int(message.text)
+
+            if 1 <= int_message <= 31:
+                await state.update_data(water_report=int_message)
+                await state.set_state(FSMFillForm.get_report_day_electro_for_new)
+                await message.answer('Введите день, в который вам будет приходить отчет за электричество')
+
+            else:
+                await message.answer('Введено некорректное число, введите еще раз')
+
+        except Exception as e:
+            await message.answer('Введено некорректное число, введите еще раз')
+
+    else:
+        await main_admin(message=message, state=state)
+        await state.clear()
+
+
+@router.message(StateFilter(FSMFillForm.get_report_day_electro_for_new))
 async def get_ident_for_add_new(message: types.Message, state: FSMContext, bot: Bot):
     logging.info('get_ident_for_add_new')
     if str(message.text) not in button_list:
         try:
             int_message = int(message.text)
             if 1 <= int_message <= 31:
-                report_day = message.text
+                report_day_electro = message.text
+                report_day_water = await state.get_data()
+                report_day_water = report_day_water['water_report']
                 ident = await state.get_data()
                 ident = ident['ident']
                 personal_id = await state.get_data()
                 personal_id = personal_id['personal_id']
-                requests.add_another_oject_to_personal(ident=ident, personal_id=personal_id, day=report_day)
+                requests.add_another_oject_to_personal(ident=ident,
+                                                       personal_id=personal_id,
+                                                       day_water=report_day_water,
+                                                       day_electro=report_day_electro)
 
                 await message.answer('Объект добавлен сотруднику')
                 await bot.send_message(chat_id=personal_id,
                                        text=f'Вам добавлен объект: "{ident}"\n'
-                                            f'Вам нужно отправлять отчет каждое {report_day} число')
+                                            f'Вам нужно отправлять отчет каждое {report_day_water} число за воду и '
+                                            f'каждое {report_day_electro} число за электричество')
                 await state.clear()
 
             else:
-                await message.answer('Введено некоректное число, введите еще раз')
-                await state.set_state(FSMFillForm.get_report_day_for_new)
+                await message.answer('Введено некорректное число, введите еще раз')
 
         except Exception as e:
-            await message.answer('Введено некоректное число, введите еще раз')
-            await state.set_state(FSMFillForm.get_report_day_for_new)
+            await message.answer('Введено некорректное число, введите еще раз')
 
     else:
         await main_admin(message=message, state=state)
@@ -276,101 +240,169 @@ async def pagination_ident(callback: types.CallbackQuery):
                                                    callback_prefix_next='next_ident',
                                                    callback=callback,
                                                    message=None)
-#     ident_list = requests.get_premises_ident()
-#     print(ident_list)
-#     for ident in ident_list:
-#         page = int(ident_list.index(ident)/2)
-#         print(page)
-#         if callback.data == f'forward_ident_{page}':
-#             markup = admin_keyboards.ident_list_mid_and_last_page(ident_list=ident_list, page=page)
-#             await callback.message.edit_text(text=f'Выберите объект для изменения времени\n'
-#                                                   f'Страница {page+1}/{int(len(ident_list)/2)+1}',
-#                                              reply_markup=markup)
-#         if callback.data == f'back_ident_{page}':
-#             if page == 0:
-#                 markup = admin_keyboards.ident_list_first_page(ident_list)
-#                 await callback.message.edit_text(text=f'Выберите объект для изменения времени\n'
-#                                                       f'Страница 1/{int(len(ident_list) / 2) + 1}',
-#                                                  reply_markup=markup)
-#
-#             else:
-#                 markup = admin_keyboards.ident_list_mid_and_last_page(ident_list=ident_list, page=page)
-#                 await callback.message.edit_text(text=f'Выберите объект для изменения времени\n'
-#                                                       f'Страница {page+1}/{int(len(ident_list)/2)+1}',
-#                                                  reply_markup=markup)
-#     await callback.answer()
 
 
 @router.callback_query(F.data.startswith('Добавление_'))
 async def get_ident_to_change_day(callback: types.CallbackQuery, state: FSMContext):
-    logging.info('get_ident_to_change_day')
-    ident_list = requests.get_premises_ident()
-    for ident in ident_list:
-        await callback.answer()
-        await state.update_data(ident=ident[0])
-        await callback.message.edit_text(f'Введите новый день сдачи отчета для объекта "{ident[0]}"')
-        await state.set_state(FSMFillForm.get_new_report_day)
-        break
+    logging.info(f'get_ident_to_change_day {callback.data}')
+    object_id = requests.get_id_for_premises(ident=callback.data.split('_')[-1])
+    await state.update_data(object_id=object_id)
+    await state.update_data(ident=callback.data.split('_')[-1])
+    await callback.message.edit_text(text=f'Выберите тип отчета',
+                                     reply_markup=admin_keyboards.report_buttons_admin())
+    await callback.answer()
 
 
-@router.message(StateFilter(FSMFillForm.get_new_report_day))
-async def get_new_report_day(message: types.Message, state: FSMContext, bot: Bot):
-    logging.info('get_new_report_day')
+@router.callback_query(F.data == 'ВОДА')
+async def choice_report_type_1(callback: types.CallbackQuery, state: FSMContext):
+    logging.info('choice_report_type_1')
+    await callback.answer()
+    await state.set_state(FSMFillForm.get_new_report_day_water)
+    await callback.message.edit_text(text='Введите новый день для сдачи отчета за воду',
+                                     reply_markup=None)
+
+
+@router.callback_query(F.data == 'ЭЛЕКТРИЧЕСТВО')
+async def choice_report_type_2(callback: types.CallbackQuery, state: FSMContext):
+    logging.info('choice_report_type_2')
+    await callback.answer()
+    await state.set_state(FSMFillForm.get_new_report_day_electro)
+    await callback.message.edit_text(text='Введите новый день для сдачи отчета за электричество',
+                                     reply_markup=None)
+
+
+@router.message(StateFilter(FSMFillForm.get_new_report_day_water))
+async def get_new_report_day_water(message: types.Message, state: FSMContext, bot: Bot):
+    logging.info('get_new_report_day_water')
     if str(message.text) not in button_list:
-
-        try:
+        if message.text.isdigit():
             int_message = int(message.text)
-
             if 1 <= int_message <= 31:
-
-                new_day = message.text
-                ident_cort = await state.get_data()
-                ident = ident_cort['ident']
-                requests.update_day(ident=ident, day=new_day)
+                water_report = int_message
+                data = await state.get_data()
+                ident = data['ident']
+                requests.update_day_water(ident=ident, day_water=water_report)
                 personal_id = requests.select_personal_id_by_ident(ident)[0][0]
                 await message.answer(f'День сдачи отчета для помещения "{ident}" изменен')
                 try:
                     await bot.send_message(chat_id=personal_id,
-                                           text=f'День сдачи отчета для помещения "{ident}" изменен на {new_day} число')
+                                           text=f'День сдачи отчета за воду для помещения "{ident}" изменен на'
+                                                f' {water_report} число')
+                    await state.clear()
 
                 except Exception as e:
                     await message.answer(text=f'Бот не смог оповестить пользователя')
 
             else:
-                await message.answer('Введено некоректное число, введите его еще раз')
-                await state.set_state(FSMFillForm.get_new_report_day)
+                await message.answer('Введено некорректное число, введите его еще раз')
 
-        except Exception as e:
-            await message.answer('Введено некоректное число, введите его еще раз')
-            await state.set_state(FSMFillForm.get_new_report_day)
+        else:
+            await message.answer('Введено некорректное число, введите его еще раз')
 
     else:
-        await main_admin(message, state)
-    await state.clear()
+        await main_admin(message=message, state=state)
+
+
+@router.message(StateFilter(FSMFillForm.get_new_report_day_electro))
+async def get_new_report_day(message: types.Message, state: FSMContext, bot: Bot):
+    logging.info('get_new_report_day')
+    if str(message.text) not in button_list:
+        if message.text.isdigit():
+            int_message = int(message.text)
+            if 1 <= int_message <= 31:
+                electro_report = int_message
+                data = await state.get_data()
+                ident = data['ident']
+                requests.update_day_electro(ident=ident, day_electro=electro_report)
+                personal_id = requests.select_personal_id_by_ident(ident)[0][0]
+                await message.answer(f'День сдачи отчета для помещения "{ident}" изменен')
+                try:
+                    await bot.send_message(chat_id=personal_id,
+                                           text=f'День сдачи отчета за электричество для помещения'
+                                                f' "{ident}" изменен на {electro_report} число')
+                    await state.clear()
+
+                except Exception as e:
+                    await message.answer(text=f'Бот не смог оповестить пользователя')
+
+            else:
+                await message.answer(text='Введено некорректное число, введите его еще раз')
+
+        else:
+            await message.answer(text='Введено некорректное число, введите его еще раз')
+
+    else:
+        await main_admin(message=message, state=state)
 
 
 @router.message(StateFilter(FSMFillForm.get_ident))
 async def get_ident(message: types.Message, state: FSMContext):
     logging.info('get_ident')
-    await state.update_data(user_input=message.text)
-    await message.answer('Введите день месяца в который вам будет приходить отчет')
-    await state.set_state(FSMFillForm.get_date_time)
+    if str(message.text) not in button_list:
+
+        await state.update_data(user_input=message.text)
+        await message.answer('Введите день месяца в который вам будет приходить отчет за воду')
+        await state.set_state(FSMFillForm.get_date_time_water)
+
+    else:
+        await main_admin(message=message, state=state)
+        await state.clear()
 
 
-@router.message(StateFilter(FSMFillForm.get_date_time))
+@router.message(StateFilter(FSMFillForm.get_date_time_water))
+async def get_time_water(message: types.Message, state: FSMContext):
+    logging.info('get_time_water')
+    if str(message.text) not in button_list:
+        try:
+            int_message = int(message.text)
+            if 1 <= int_message <= 31:
+
+                await state.update_data(water_report=int_message)
+                await message.answer('Введите день месяца в который вам будет приходить отчет за электричество')
+                await state.set_state(FSMFillForm.get_date_time_electro)
+
+            else:
+                await message.answer('Введено некорректное число,введите еще раз')
+
+        except Exception as e:
+            print(e)
+            await message.answer('Введено некорректное число,введите еще раз')
+
+    else:
+        await main_admin(message=message, state=state)
+        await state.clear()
+
+
+@router.message(StateFilter(FSMFillForm.get_date_time_electro))
 async def get_data_time(message: types.Message, state: FSMContext):
     logging.info('get_data_time')
     if str(message.text) not in button_list:
-        time = message.text
-        ident_cort = await state.get_data()
-        ident = ident_cort['user_input']
-        requests.insert_data_and_ident(ident=ident, time=time)
-        data = requests.get_id_for_premises(ident)
-        link = f'https://t.me/{config.tg_bot.bot_name_for_link}?start={data}'
-        await message.answer(text=f'Ссылка сгенерирована:<code>{link}</code>'
-                                  f'\n\nСкопируйте нажатием и перешлите эту ссылку сотруднику',
-                             parse_mode='HTML')
-        await state.clear()
+        try:
+            int_message = int(message.text)
+
+            if 1 <= int_message <= 31:
+
+                time_electro = message.text
+                time_water = await state.get_data()
+                time_water = time_water['water_report']
+                ident_cort = await state.get_data()
+                ident = ident_cort['user_input']
+                requests.insert_data_and_ident(ident=ident,
+                                               time_water=time_water,
+                                               time_electro=time_electro)
+                data = requests.get_id_for_premises(ident)
+                link = f'https://t.me/{config.tg_bot.bot_name_for_link}?start={data}'
+                await message.answer(text=f'Ссылка сгенерирована:<code>{link}</code>'
+                                          f'\n\nСкопируйте нажатием и перешлите эту ссылку сотруднику',
+                                     parse_mode='HTML')
+                await state.clear()
+            else:
+                await message.answer('Введено некорректное число,введите еще раз')
+
+        except Exception as e:
+            print(e)
+            await message.answer('Введено некорректное число,введите еще раз')
+
     else:
         await main_admin(message, state)
         await state.clear()
@@ -400,10 +432,11 @@ async def get_text_for_mailing(message: types.Message, state: FSMContext, bot: B
         ids_list = requests.get_all_personal_ids()
         for id_ in ids_list:
             try:
-                await bot.send_message(chat_id=id_[0],text=text)
+                await bot.send_message(chat_id=id_[0], text=text)
 
             except Exception as e:
-                await message.answer(f'Пользователь {id_} не оповещен, возможно он заблокировал бота, либо не запускал его')
+                await message.answer(f'Пользователь {id_} не оповещен, возможно он заблокировал бота,'
+                                     f' либо не запускал его')
 
         await message.answer('Рассылка отправлена всем сотрудникам')
         await state.clear()
