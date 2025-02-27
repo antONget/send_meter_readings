@@ -45,7 +45,7 @@ async def main():
     bot = Bot(token=config.tg_bot.token, default=DefaultBotProperties(parse_mode=ParseMode.HTML))
     dp = Dispatcher()
     sheduler = AsyncIOScheduler(timezone='Europe/Moscow')
-    sheduler.add_job(func=send_notification, trigger='cron', hour=11, minute=43, args=(bot,))
+    sheduler.add_job(func=send_notification, trigger='cron', hour=10, minute=0, args=(bot,))
     sheduler.start()
     await on_startup_notify(bot=bot)
     # Регистрируем router в диспетчере
