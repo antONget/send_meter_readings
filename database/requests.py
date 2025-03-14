@@ -6,12 +6,7 @@ from datetime import datetime
 def create_database() -> None:
     conn = sqlite3.connect('database/DATABASE.sql')
     cur = conn.cursor()
-    cur.execute('CREATE TABLE IF NOT EXISTS database ('
-                'id INTEGER PRIMARY KEY AUTOINCREMENT,'
-                'ident text,'
-                'time_water text,'
-                'time_electro text,'
-                'personal_id int)')
+    cur.execute('CREATE TABLE IF NOT EXISTS database (id INTEGER PRIMARY KEY AUTOINCREMENT,ident text, time_water text,time_electro text, personal_id int)')
     conn.commit()
     cur.close()
     conn.close()
@@ -162,6 +157,7 @@ def select_personal_id_by_day_water(day: str):
     conn.close()
     return data
 
+
 def select_personal_id_by_day_electro(day: str):
     conn = sqlite3.connect('database/DATABASE.sql')
     cur = conn.cursor()
@@ -170,3 +166,12 @@ def select_personal_id_by_day_electro(day: str):
     cur.close()
     conn.close()
     return data
+
+
+def delete_ident(ident):
+    conn = sqlite3.connect('database/DATABASE.sql')
+    cur = conn.cursor()
+    cur.execute(f'DELETE FROM database WHERE ident = "{ident}"')
+    conn.commit()
+    cur.close()
+    conn.close()

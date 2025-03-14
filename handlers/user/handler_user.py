@@ -1,10 +1,7 @@
-import datetime
-
 from aiogram import Bot, types, F, Router
 from aiogram.filters import Command, StateFilter
 from aiogram.fsm.context import FSMContext
 from aiogram.fsm.state import State, StatesGroup
-from aiogram.types import FSInputFile
 import logging
 
 from config_data.config import Config, load_config
@@ -36,47 +33,40 @@ def extract_arg(arg):
     return arg.split()[1:]
 
 
-async def send_notification(bot: Bot):
+async def send_notification(day: str, bot: Bot):
     logging.info('send_notification')
-    day = str(datetime.datetime.now().day)
     ids_list_water = requests.select_personal_id_by_day_water(day)
     ids_list_electro = requests.select_personal_id_by_day_electro(day)
-    if ids_list_water != []:
+    if ids_list_water:
         for id_ in ids_list_water:
             try:
-                await bot.send_message(chat_id=int(id_[0]),
-                                       text=f'Сегодня {day} число, необходимо отправить отчет за воду, если у'
-                                            f' вас несколько объектов , введите /start чтобы просмотреть для'
-                                            f' какого объекта нужно отправить отчет')
+                await bot.send_message(chat_id=int(id_[0]), text=f'Сегодня {day} число, необходимо отправить отчет за'
+                                                                 f' воду, если у вас несколько объектов , введите'
+                                                                 f' /start чтобы просмотреть для какого объекта нужно'
+                                                                 f' отправить отчет')
 
             except Exception as e:
                 print(e)
                 admin_ids = str(config.tg_bot.admin_ids).split(',')
                 for admin_id in admin_ids[1:]:
-                    await bot.send_message(chat_id=int(admin_id),
-                                           text=f'Сотрудник {id_} не получил оповещение, возможно он заблокировал'
-                                                f' бота, либо не запускал его')
-    if ids_list_electro != []:
+                    await bot.send_message(chat_id=int(admin_id), text=f'Сотрудник {id_} не получил оповещение,'
+                                                                       f' возможно он заблокировал бота, либо не'
+                                                                       f' запускал его')
+    if ids_list_electro:
         for id_ in ids_list_electro:
             try:
-                await bot.send_message(chat_id=int(id_[0]),
-                                       text=f'Сегодня {day} число, необходимо отправить отчет за электричество,'
-                                            f' если у вас несколько объектов , введите /start чтобы просмотреть для'
-                                            f' какого объекта нужно отправить отчет')
+                await bot.send_message(chat_id=int(id_[0]), text=f'Сегодня {day} число, необходимо отправить отчет'
+                                                                 f' за электричество, если у вас несколько объектов,'
+                                                                 f' введите /start чтобы просмотреть для какого объекта'
+                                                                 f' нужно отправить отчет')
 
             except Exception as e:
                 print(e)
                 admin_ids = str(config.tg_bot.admin_ids).split(',')
                 for admin_id in admin_ids[1:]:
-                    await bot.send_message(chat_id=int(admin_id),
-                                           text=f'Сотрудник {id_} не получил оповещение,'
-                                                f' возможно он заблокировал бота, либо не запускал его')
-
-
-@router.message(Command('send_file'))
-async def send_file(message: types.Message):
-    file_name = 'py_log.log'
-    await message.answer_document(FSInputFile(file_name))
+                    await bot.send_message(chat_id=int(admin_id), text=f'Сотрудник {id_} не получил оповещение,'
+                                                                       f' возможно он заблокировал бота, либо не'
+                                                                       f' запускал его')
 
 
 @router.message(Command('start'))
@@ -111,8 +101,8 @@ async def start(message: types.Message):
                     text = 'Вы являетесь ответственным за помещения:\n'
 
                     for elem in data:
-                        text += f'{data.index(elem)+1}) "{elem[0]}", дни отчета: {elem[1]} число - вода ,{elem[2]}' \
-                                f' число - электричество\n'
+                        text += f'{data.index(elem)+1}) "{elem[0]}", дни отчета: {elem[1]} число - вода, ' \
+                                f'{elem[2]} число - электричество\n'
                     await message.answer(text=text, reply_markup=personal_keyboards.main_button_personal())
 
             else:
@@ -133,10 +123,9 @@ async def start(message: types.Message):
                     text = 'Вы являетесь ответственным за помещения:\n'
 
                     for elem in data:
-                        text += f'{data.index(elem) + 1}) "{elem[0]}", дни отчета: {elem[1]} число - вода ,' \
+                        text += f'{data.index(elem) + 1}) "{elem[0]}", дни отчета: {elem[1]} число - вода, ' \
                                 f'{elem[2]} число - электричество\n'
-                    await message.answer(text=text,
-                                         reply_markup=personal_keyboards.main_button_personal())
+                    await message.answer(text=text, reply_markup=personal_keyboards.main_button_personal())
             else:
                 await message.answer('Вы не являетесь персоналом')
 
@@ -149,8 +138,7 @@ async def send_report(message: types.Message, state: FSMContext):
         data = requests.check_personal_without_comand(user_id)
         if len(data) == 1:
             await state.update_data(user_input=data[0][0])
-            await message.answer(text='Выберите тип отчета',
-                                 reply_markup=personal_keyboards.report_buttons())
+            await message.answer(text='Выберите тип отчета', reply_markup=personal_keyboards.report_buttons())
             await state.set_state(FSMFillForm.get_photo_to_report)
 
         else:
@@ -179,8 +167,7 @@ async def get_ident_to_report(callback: types.CallbackQuery, state: FSMContext):
         if callback.data == f'Отчет:{ident}':
             await callback.answer()
             await state.update_data(user_input=ident)
-            await callback.message.edit_text(text='Выберите тип отчета:',
-                                             reply_markup=personal_keyboards.report_buttons())
+            await callback.message.edit_text('Выберите тип отчета:', reply_markup=personal_keyboards.report_buttons())
             break
 
 
@@ -189,8 +176,7 @@ async def get_report_tipe(callback: types.CallbackQuery, state: FSMContext):
     logging.info('get_report_tipe')
     await state.update_data(report_type=callback.data)
     await callback.answer()
-    await callback.message.edit_text(text='Пришлите фото отчета за воду',
-                                     reply_markup=None)
+    await callback.message.edit_text('Пришлите фото отчета за воду', reply_markup=None)
     await state.set_state(FSMFillForm.get_photo_to_report_choice)
 
 
@@ -199,8 +185,7 @@ async def get_report_tipe(callback: types.CallbackQuery, state: FSMContext):
     logging.info('get_report_tipe')
     await state.update_data(report_type=callback.data)
     await callback.answer()
-    await callback.message.edit_text(text='Пришлите фото отчета за электричество',
-                                     reply_markup=None)
+    await callback.message.edit_text('Пришлите фото отчета за электричество', reply_markup=None)
     await state.set_state(FSMFillForm.get_photo_to_report_choice)
 
 

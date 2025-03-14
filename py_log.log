@@ -1,0 +1,10 @@
+send_meter_readings_bot.py:40 #INFO     [2025-03-14 18:34:36,617] - __main__ - Starting bot
+base.py:507 #INFO     [2025-03-14 18:34:36,805] - apscheduler.scheduler - Adding job tentatively -- it will be properly scheduled when the scheduler starts
+base.py:1090 #INFO     [2025-03-14 18:34:36,806] - apscheduler.scheduler - Added job "send_notification" to job store "default"
+base.py:214 #INFO     [2025-03-14 18:34:36,806] - apscheduler.scheduler - Scheduler started
+notify_admins.py:13 #INFO     [2025-03-14 18:34:36,806] - root - on_startup_notify
+dispatcher.py:527 #INFO     [2025-03-14 18:34:37,147] - aiogram.dispatcher - Start polling
+dispatcher.py:341 #INFO     [2025-03-14 18:34:37,217] - aiogram.dispatcher - Run polling for bot @Testatstatsbot id=8069418388 - 'Для тестов'
+dispatcher.py:172 #INFO     [2025-03-14 18:34:39,817] - aiogram.event - Update id=894290712 is handled. Duration 297 ms by bot id=8069418388
+dispatcher.py:554 #INFO     [2025-03-14 18:42:14,847] - aiogram.dispatcher - Polling stopped
+dispatcher.py:359 #INFO     [2025-03-14 18:42:15,109] - aiogram.dispatcher - Polling stopped for bot @Testatstatsbot id=8069418388 - 'Для тестов'

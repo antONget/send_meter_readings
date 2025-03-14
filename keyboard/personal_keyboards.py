@@ -17,9 +17,10 @@ def choice_ident_buttons(ident_list):
         markup.inline_keyboard.append([btn])
     return markup
 
+
 def report_buttons():
     markup = types.InlineKeyboardMarkup(inline_keyboard=[])
-    btn1 = types.InlineKeyboardButton(text='Электричество',callback_data='Электричество')
-    btn2 = types.InlineKeyboardButton(text='Вода',callback_data='Воду')
-    markup.inline_keyboard.append([btn1,btn2])
+    btn1 = types.InlineKeyboardButton(text='Электричество', callback_data='Электричество')
+    btn2 = types.InlineKeyboardButton(text='Вода', callback_data='Воду')
+    markup.inline_keyboard.append([btn1, btn2])
     return markup
